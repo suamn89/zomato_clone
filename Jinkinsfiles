@@ -1,23 +1,11 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "zomato-clone"
-        CONTAINER_NAME = "zomato-container"
-        PORT = "5173"
-    }
-
     stages {
-
-        stage('Clean Workspace') {
-            steps {
-                deleteDir()
-            }
-        }
 
         stage('Clone Code') {
             steps {
-                git branch: 'master', url: 'https://github.com/suamn89/zomato_clone.git'
+                git 'https://github.com/suamn89/zomato_clone.git'
             }
         }
 
@@ -29,40 +17,28 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                sh 'docker build -t zomato-clone .'
+            }
+        }
+
+        stage('Scan Image with Trivy') {
+            steps {
+                sh '''
+                trivy image zomato-clone > trivy-report.txt
+                '''
             }
         }
 
         stage('Stop Old Container') {
             steps {
-                sh 'docker rm -f $CONTAINER_NAME || true'
+                sh 'docker rm -f zomato-container || true'
             }
         }
 
         stage('Run Container') {
             steps {
-                sh '''
-                docker run -d \
-                -p $PORT:$PORT \
-                --name $CONTAINER_NAME \
-                $IMAGE_NAME
-                '''
+                sh 'docker run -d -p 5173:5173 --name zomato-container zomato-clone'
             }
-        }
-
-        stage('Check Running Container') {
-            steps {
-                sh 'docker ps'
-            }
-        }
-    }
-
-    post {
-        success {
-            echo '✅ Deployment Successful! Access your app at http://localhost:5173'
-        }
-        failure {
-            echo '❌ Pipeline Failed! Check logs'
         }
     }
 }
