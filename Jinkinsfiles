@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "zomato-clone"
+        CONTAINER_NAME = "zomato-container"
+    }
+
     stages {
 
         stage('Clone Code') {
@@ -17,28 +22,51 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t zomato-clone .'
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
-        stage('Scan Image with Trivy') {
+        stage('Trivy Scan (Report)') {
             steps {
                 sh '''
-                trivy image zomato-clone > trivy-report.txt
+                trivy image --no-progress --format table $IMAGE_NAME > trivy-report.txt
+                '''
+            }
+        }
+
+        stage('Trivy Scan (Fail on HIGH/CRITICAL)') {
+            steps {
+                sh '''
+                trivy image --no-progress --exit-code 1 --severity HIGH,CRITICAL $IMAGE_NAME
                 '''
             }
         }
 
         stage('Stop Old Container') {
             steps {
-                sh 'docker rm -f zomato-container || true'
+                sh 'docker rm -f $CONTAINER_NAME || true'
             }
         }
 
         stage('Run Container') {
             steps {
-                sh 'docker run -d -p 5173:5173 --name zomato-container zomato-clone'
+                sh 'docker run -d -p 5173:5173 --name $CONTAINER_NAME $IMAGE_NAME'
             }
+        }
+
+        stage('Archive Trivy Report') {
+            steps {
+                archiveArtifacts artifacts: 'trivy-report.txt', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Deployment Successful with Security Scan!'
+        }
+        failure {
+            echo '❌ Build Failed due to vulnerabilities or errors!'
         }
     }
 }
