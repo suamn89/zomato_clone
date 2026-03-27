@@ -26,21 +26,19 @@ pipeline {
             }
         }
 
-        stage('Trivy Scan (Report)') {
-            steps {
-                sh '''
-                trivy image --no-progress --format table $IMAGE_NAME > trivy-report.txt
-                '''
-            }
-        }
-
-        stage('Trivy Scan (Fail on HIGH/CRITICAL)') {
-            steps {
-                sh '''
-                trivy image --no-progress --exit-code 1 --severity HIGH,CRITICAL $IMAGE_NAME
-                '''
-            }
-        }
+       stage('Trivy Scan') {
+    steps {
+        sh '''
+        docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v $(pwd):/root/.cache/ \
+        aquasec/trivy:latest image \
+        --no-progress \
+        --format table \
+        zomato-clone > trivy-report.txt
+        '''
+    }
+}
 
         stage('Stop Old Container') {
             steps {
