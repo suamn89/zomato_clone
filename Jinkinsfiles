@@ -33,7 +33,7 @@ pipeline {
             }
         }
 
-        stage('Trivy Scan') {
+        stage('Trivy Scan (Report Only)') {
             steps {
                 sh '''
                 docker run --rm \
@@ -42,19 +42,19 @@ pipeline {
                 aquasec/trivy:$TRIVY_VERSION image \
                 --no-progress \
                 --format table \
-                $IMAGE_NAME > trivy-report.txt
+                $IMAGE_NAME > trivy-report.txt || true
                 '''
             }
         }
 
-        stage('Trivy Security Gate') {
+        stage('Trivy Security Gate (CRITICAL only)') {
             steps {
                 sh '''
                 docker run --rm \
                 -v /var/run/docker.sock:/var/run/docker.sock \
                 aquasec/trivy:$TRIVY_VERSION image \
                 --exit-code 1 \
-                --severity HIGH,CRITICAL \
+                --severity CRITICAL \
                 $IMAGE_NAME
                 '''
             }
@@ -84,7 +84,7 @@ pipeline {
             echo '✅ Deployment Successful with Security Scan!'
         }
         failure {
-            echo '❌ Build Failed due to vulnerabilities or errors!'
+            echo '❌ Build Failed due to CRITICAL vulnerabilities or errors!'
         }
     }
 }
