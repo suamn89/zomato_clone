@@ -29,7 +29,7 @@ pipeline {
 
         stage('Pull Trivy Image') {
             steps {
-                sh 'docker pull aquasecurity/trivy:$TRIVY_VERSION'
+                sh 'docker pull aquasec/trivy:$TRIVY_VERSION'
             }
         }
 
@@ -39,7 +39,7 @@ pipeline {
                 docker run --rm \
                 -v /var/run/docker.sock:/var/run/docker.sock \
                 -v $(pwd):/root/.cache/ \
-                aquasecurity/trivy:$TRIVY_VERSION image \
+                aquasec/trivy:$TRIVY_VERSION image \
                 --no-progress \
                 --format table \
                 $IMAGE_NAME > trivy-report.txt
@@ -52,7 +52,7 @@ pipeline {
                 sh '''
                 docker run --rm \
                 -v /var/run/docker.sock:/var/run/docker.sock \
-                aquasecurity/trivy:$TRIVY_VERSION image \
+                aquasec/trivy:$TRIVY_VERSION image \
                 --exit-code 1 \
                 --severity HIGH,CRITICAL \
                 $IMAGE_NAME
